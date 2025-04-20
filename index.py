@@ -3,6 +3,11 @@ import sqlite3
 import tkinter as tk
 from PIL import Image
 
+
+# Top Level Class
+    
+
+
 # System Defaults
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
@@ -10,8 +15,20 @@ ctk.FontManager.load_font("assets/fonts/Poppins.ttf")
 profile_img = Image.open("assets/images/profile.png")
 delete_img = Image.open("assets/images/delete.png")
 go_back_img = Image.open("assets/images/go_back.png")
+success_img = Image.open("assets/images/success.png")
+bg_img = Image.open("assets/images/bg.jpg")
 root = ctk.CTk()
-root.geometry("1000x600")
+window_width = 1000
+window_height = 600
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+x = int((screen_width / 2) - (window_width / 2))
+y = int((screen_height / 2) - (window_height / 2))-50
+
+root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+root_bg_img= ctk.CTkImage(bg_img, size=(window_width, window_height))
+root_bg_lbl = ctk.CTkLabel(root, image= root_bg_img, text= "")
+root_bg_lbl.place(x=0, y=0, relwidth=1, relheight=1)
 root.title("Complaint Management System")
 connection = sqlite3.connect("cms.db")
 cursor = connection.cursor()
@@ -28,7 +45,7 @@ class ComplaintForm:
         self.root = root
         self.cursor = cursor
         self.connection = connection
-        self.user_comp_int_frm = ctk.CTkFrame(self.root, fg_color="transparent")
+        self.user_comp_int_frm = ctk.CTkFrame(self.root, fg_color="transparent", border_color= "#00009e", border_width= 5)
         self.username_com_form = tk.StringVar()
         self.userid_com_form = tk.StringVar()
         self.usergender_com_form = tk.StringVar()
@@ -92,7 +109,21 @@ class ComplaintForm:
 
         self.submit_com_form_btn = ctk.CTkButton(self.user_comp_form_frm, text="Submit Now", font=("Poppins", 15), command=self.insert)
 
-        # Submit Button
+    def submit(self):
+        frame_width = 400
+        frame_height = 200
+        x = (self.root.winfo_width()/2) - (frame_width/2)
+        y = (self.root.winfo_height()/2) - (frame_height/2)
+        self.success_msg_frm = ctk.CTkFrame(self.root, width= frame_width, height= frame_height, fg_color= "transparent", border_color="green", border_width= 5)
+        self.success_icon = ctk.CTkImage(success_img, size=(100,100))
+        self.success_msg_lbl = ctk.CTkLabel(self.success_msg_frm, text= "Complaint has been submitted!", font=("Poppins", 18))
+        self.success_icon_holder = ctk.CTkLabel(self.success_msg_frm, image=self.success_icon, text="")
+
+        self.success_msg_lbl.pack(fill="x", expand= True, pady = 10, padx= 50)
+        self.success_icon_holder.pack(fill= "x", expand= True, pady=(0,10), padx= 50)
+        self.success_msg_frm.place(x= x, y = y)
+        self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
+        
     def show(self):
         self.hide()
 
@@ -139,8 +170,8 @@ class ComplaintForm:
         self.logout_btn.pack(padx = (20, 125), side= "left")
         self.user_comp_title_lbl.pack(side = "left")
         
-        self.header_frm.pack(pady = 15, fill= "x", expand = "True")
-        self.user_comp_form_frm.pack(padx=20, pady=5)
+        self.header_frm.pack(pady = 15, fill= "x", expand = "True", padx= 8)
+        self.user_comp_form_frm.pack(padx=20, pady=10)
 
 
        
@@ -188,8 +219,7 @@ class ComplaintForm:
             )
             self.connection.commit()
             self.cursor.execute("SELECT * FROM complaint_form")
-            records = self.cursor.fetchall()
-            print(records)
+            self.submit()
             self.show()
     
     def hide(self):
@@ -209,8 +239,11 @@ class AdminMainInterface:
         self.root = root
         self.cursor = cursor
         self.connection = connection
-        self.admin_main_int = ctk.CTkFrame(self.root, fg_color= "transparent")
+        self.admin_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", border_color="#00009e", border_width=5, width= 900)
         self.admin_form_frm = ctk.CTkScrollableFrame(self.admin_main_int, border_color="#00009e", border_width=2, width=800, height=500)
+        self.modal = None
+        self.offset_x = 0
+        self.offset_y = 0
     def show(self):
         self.header_frm = ctk.CTkFrame(self.admin_main_int, fg_color= "transparent")
         self.logout_btn = ctk.CTkButton(self.header_frm, text= "Logout", command = lambda: log_in("logoutadmin", "logoutadmin"))
@@ -219,6 +252,8 @@ class AdminMainInterface:
 
         self.cursor.execute("SELECT complaint_no, name, Subject FROM complaint_form")
         self.records = self.cursor.fetchall()
+
+        self.header_frm.pack(pady = 15, padx= 20, fill= "x", expand = "True")
         if len(self.records) == 0:
             self.show_none()
         else:
@@ -226,9 +261,11 @@ class AdminMainInterface:
         self.logout_btn.pack(padx = (20, 125), side= "left")
         self.admin_title_lbl.pack(side = "left")
         self.delete_all_btn.pack(side= "left", padx = (125, 20))
-        self.header_frm.pack(pady = 15, fill= "x", expand = "True")
-        self.admin_form_frm.pack(fill = "x", expand = True)
-        self.admin_main_int.pack()
+        
+        self.admin_form_frm.pack(fill = "x", expand = True, padx= 20, pady= 10)
+        self.admin_main_int.pack(fill= "x", expand= True, padx= 10)
+        
+        
     def show_records(self):
         # Clear previous data
         for widget in self.admin_form_frm.winfo_children():
@@ -236,25 +273,25 @@ class AdminMainInterface:
 
         # Column headers
         columns = ["Complaint\nNo.", "Name", "Subject"]
-        header_frame = ctk.CTkFrame(self.admin_form_frm, fg_color="lightgray", corner_radius=8)
-        header_frame.pack(fill="x", padx=5, pady=2)
+        self.header_frame = ctk.CTkFrame(self.admin_form_frm, fg_color="lightgray", corner_radius=8)
+        self.header_frame.pack(fill="x", padx=5, pady=2)
 
         for col_index, col_name in enumerate(columns):
-            header_label = ctk.CTkLabel(header_frame, text=col_name, font=("Poppins", 15), padx=5, pady=5)
+            header_label = ctk.CTkLabel(self.header_frame, text=col_name, font=("Poppins", 15), padx=5, pady=5)
             header_label.grid(row=0, column=col_index, sticky="nsew", padx=2, pady=2)
 
         # Make the columns expand equally in the header frame
         for col_index in range(len(columns)):
-            header_frame.grid_columnconfigure(col_index, weight=1, minsize= 200)
+            self.header_frame.grid_columnconfigure(col_index, weight=1, minsize= 200)
 
         # Display each record as a separate frame
         for num in range(len(self.records)):
             # Create a frame for each row to ensure it acts as a block element
-            record_frame = ctk.CTkFrame(self.admin_form_frm, fg_color="#00C0F0", corner_radius=8)
+            record_frame = ctk.CTkFrame(self.admin_form_frm, fg_color="#00C0F0", corner_radius= 8)
             record_frame.pack(fill="x", padx=5, pady=2)
 
             # Bind the entire frame to the click event
-            record_frame.bind("<Button-1>", lambda event, complaint_no = num+1: self.show_individual_record(complaint_no))
+            record_frame.bind("<Button-1>", lambda event, complaint_no = self.records[num][0]: self.show_individual_record(complaint_no))
             record_frame.bind("<Enter>", lambda event, f=record_frame: self.on_enter(f))
             record_frame.bind("<Leave>", lambda event, f=record_frame: self.on_leave(f))
 
@@ -273,7 +310,6 @@ class AdminMainInterface:
                 record_frame.grid_columnconfigure(col_index, weight=1, minsize = 200)
     def hide(self):
         self.admin_main_int.forget()
-
     def on_enter(self, frame):
         frame.configure(fg_color = '#0083A3')
 
@@ -281,20 +317,24 @@ class AdminMainInterface:
         frame.configure(fg_color = '#00C0F0')
 
     def show_individual_record(self, complaint_no):
-        self.hide()
+        
         self.cursor.execute(f'SELECT * FROM complaint_form WHERE complaint_no = {complaint_no}')
         self.selected_record = self.cursor.fetchall()
+        print(f"Selected Complaint_No: {complaint_no}")
+        
+        self.hide()
+        self.complaint_no = self.selected_record[0][0]
         self.user_name = self.selected_record[0][1]
         self.user_id = self.selected_record[0][2]
         self.user_gender = self.selected_record[0][3]
         self.user_subject = self.selected_record[0][4]
         self.user_complaint = self.selected_record[0][5]
 
-        self.user_comp_int_frm = ctk.CTkFrame(self.root, fg_color="transparent")
+        self.user_comp_int_frm = ctk.CTkFrame(self.root, fg_color="transparent", border_color="#00009e", border_width=5)
 
-         # Frame for the entire form
+        # Frame for the entire form
         self.header_frm = ctk.CTkFrame(self.user_comp_int_frm, fg_color= "transparent")
-        self.user_comp_title_lbl = ctk.CTkLabel(self.header_frm, text="Complaint Form", font=("Poppins", 35))
+        self.user_comp_title_lbl = ctk.CTkLabel(self.header_frm, text=f"Complaint No. {self.complaint_no}", font=("Poppins", 35))
         self.go_back_frm = ctk.CTkFrame(self.header_frm, fg_color="yellow", border_width=2, corner_radius= 20)
         self.go_back_icon = ctk.CTkImage(go_back_img, size=(30,30))
         self.go_back_icon_holder = ctk.CTkLabel(self.go_back_frm, image= self.go_back_icon, text="", bg_color="yellow")
@@ -348,7 +388,7 @@ class AdminMainInterface:
         self.com_form_ent.insert("0.0", self.user_complaint)
         self.com_form_ent.configure(state= "disabled")
 
-         # Packing Widgets
+        # Packing Widgets
         self.user_name_lbl.pack(padx=(50, 3), pady=(10, 0), side="left")
         self.user_name_ent.pack(padx=(10, 20), pady=(10, 0), side="left")
         self.user_id_lbl.pack(padx=(50, 3), pady=(10, 0), side="left")
@@ -381,17 +421,18 @@ class AdminMainInterface:
         self.go_back_frm.pack(side = "left", padx = (20,0))
         self.user_comp_title_lbl.pack(side = "left", padx = (170,75))
         self.delete_frm.pack(side = "left", padx = (0,20))
-        self.header_frm.pack(pady = 15, fill= "x", expand = "True")
+        self.header_frm.pack(pady = 15, fill= "x", expand = "True", padx= 20)
         
         
         
-        self.user_comp_form_frm.pack(padx=20, pady=5)
+        self.user_comp_form_frm.pack(padx=20, pady=10)
 
 
-       
+    
         # Pack the main frame
         self.user_comp_int_frm.pack()
     
+
     def delete_individual_record(self, complaint_no):
         self.cursor.execute(f"DELETE FROM complaint_form WHERE complaint_no = {complaint_no}")
         self.connection.commit()
@@ -408,10 +449,12 @@ class AdminMainInterface:
 
     def go_back(self):
         self.hide_individual_record()
-        self.admin_main_int.pack()
+        self.admin_main_int.pack(fill= "x", expand= True, padx= 10)
         self.show()
 
     def show_none(self):
+        print("show none is ran")
+        
         for widget in self.admin_form_frm.winfo_children():
             widget.destroy()
 
@@ -438,10 +481,10 @@ def log_in(username, userpassword):
     records = cursor.fetchall()
     print(records)
     if username == userpassword == "logout":
-        login_frm.pack()
+        login_frm.pack(pady = (25,15))
         complaintforminterface.hide()
     elif username == userpassword == "logoutadmin":
-        login_frm.pack()
+        login_frm.pack(pady = (25,15))
         adminmaininterface.hide()
     elif username.get() == userpassword.get() == "user":
         login_frm.forget()
@@ -455,10 +498,10 @@ def log_in(username, userpassword):
 
 
 # Log in Interface
-login_frm = ctk.CTkFrame(root, fg_color= "transparent")
-login_title_frm = ctk.CTkFrame(login_frm, fg_color= "#00009e", corner_radius= 60)
+login_frm = ctk.CTkFrame(root, fg_color= "transparent", border_color="#00009e", border_width= 5, bg_color="transparent")
+login_title_frm = ctk.CTkFrame(login_frm, fg_color= "#00009e", corner_radius= 60, bg_color="transparent")
 login_title_lbl = ctk.CTkLabel(login_title_frm, text= "Complaint Management System", font= ("Poppins", 30), bg_color= "#00009e", text_color= "#e7e8e8")
-login_title_frm.pack(pady = (50, 0))
+login_title_frm.pack(pady= 10, padx= 20)
 login_title_lbl.pack(padx = 20, pady = 40)
 
 # Start of User Form #
@@ -485,8 +528,8 @@ user_username_ent.pack(pady = (10, 0), padx = 20)
 user_password_lbl.pack(pady = (20, 0), padx = 20)
 user_password_ent.pack(pady = (10, 10), padx = 20)
 user_form_submit_btn.pack(pady = (10, 10), padx = 20)
-user_form_frm.pack(pady= (50, 0))
-login_frm.pack()
+user_form_frm.pack(pady= (50, 10), padx= 20)
+login_frm.pack(pady = (25,15))
 # End of User Form #
 
 # Start of User Complaint Interface #
