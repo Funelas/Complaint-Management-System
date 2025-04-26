@@ -70,9 +70,6 @@ class ComplaintForm:
         self.user_id_lbl = ctk.CTkLabel(self.user_id_inf_frm, text="ID Number:", font=("Poppins", 15))
         self.user_id_ent = ctk.CTkEntry(self.user_id_inf_frm, font=("Poppins", 15), placeholder_text="Enter your ID", width=250, textvariable=self.userid_com_form)
         self.id_error = ctk.CTkLabel(self.user_id_frm, text="", text_color="red", font=("Poppins", 12), anchor= "w")
-        # Error Message When Left Blank
-        # self.name_id_error_frm = ctk.CTkFrame(self.user_comp_form_frm, fg_color="transparent")
-        
         
 
 
@@ -241,9 +238,6 @@ class AdminMainInterface:
         self.connection = connection
         self.admin_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", border_color="#00009e", border_width=5, width= 900)
         self.admin_form_frm = ctk.CTkScrollableFrame(self.admin_main_int, border_color="#00009e", border_width=2, width=800, height=500)
-        self.modal = None
-        self.offset_x = 0
-        self.offset_y = 0
     def show(self):
         self.header_frm = ctk.CTkFrame(self.admin_main_int, fg_color= "transparent")
         self.logout_btn = ctk.CTkButton(self.header_frm, text= "Logout", command = lambda: log_in("logoutadmin", "logoutadmin"))
@@ -320,7 +314,6 @@ class AdminMainInterface:
         
         self.cursor.execute(f'SELECT * FROM complaint_form WHERE complaint_no = {complaint_no}')
         self.selected_record = self.cursor.fetchall()
-        print(f"Selected Complaint_No: {complaint_no}")
         
         self.hide()
         self.complaint_no = self.selected_record[0][0]
@@ -353,9 +346,9 @@ class AdminMainInterface:
         self.delete_frm.bind("<Button-1>", lambda event, complaint_no = complaint_no: self.delete_individual_record(complaint_no))
         self.delete_icon_holder.bind("<Button-1>", lambda event, complaint_no = complaint_no: self.delete_individual_record(complaint_no))
         self.delete_complaint_lbl.bind("<Button-1>", lambda event, complaint_no = complaint_no: self.delete_individual_record(complaint_no))
+
         self.user_comp_form_frm = ctk.CTkScrollableFrame(self.user_comp_int_frm, border_color="#00009e", border_width=2, width=800, height=500)
 
-        
         # Name and ID Frame
         self.name_id_frm = ctk.CTkFrame(self.user_comp_form_frm, fg_color="transparent")
         self.user_name_frm = ctk.CTkFrame(self.name_id_frm, fg_color="transparent")
@@ -434,15 +427,19 @@ class AdminMainInterface:
     
 
     def delete_individual_record(self, complaint_no):
+        self.cursor.execute(f"SELECT complaint_no FROM complaint_form")
+        self.complaint_num_arr = self.cursor.fetchall()
+        for num in range(len(self.complaint_num_arr)):
+            if self.complaint_num_arr[num][0] == complaint_no:
+                self.complaint_num_idx = num
         self.cursor.execute(f"DELETE FROM complaint_form WHERE complaint_no = {complaint_no}")
         self.connection.commit()
-        self.cursor.execute(f"SELECT complaint_no FROM complaint_form LIMIT 1")
-        self.next_complaint = self.cursor.fetchall()
+        self.next_complaint = self.complaint_num_arr[(self.complaint_num_idx + 1) % len(self.complaint_num_arr)][0]
         self.hide_individual_record()
-        if len(self.next_complaint) == 0:
+        if len(self.complaint_num_arr) == 1:
             self.go_back()
         else:
-            self.show_individual_record(self.next_complaint[0][0])
+            self.show_individual_record(self.next_complaint)
     
     def hide_individual_record(self):
         self.user_comp_int_frm.forget()
@@ -453,12 +450,10 @@ class AdminMainInterface:
         self.show()
 
     def show_none(self):
-        print("show none is ran")
-        
         for widget in self.admin_form_frm.winfo_children():
             widget.destroy()
 
-        self.none_lbl = ctk.CTkLabel(self.admin_form_frm, text="There is are complaints yet currently.", font=("Poppins", 36), height= 500, text_color= "#a6a6a6")
+        self.none_lbl = ctk.CTkLabel(self.admin_form_frm, text="There are no complaints yet currently.", font=("Poppins", 36), height= 500, text_color= "#a6a6a6")
         self.none_lbl.pack(fill= "both", expand= True)
 
     def delete_all(self):
@@ -476,10 +471,6 @@ complaintforminterface = ComplaintForm(root, cursor, connection)
 adminmaininterface = AdminMainInterface(root, cursor, connection)
 # Functions
 def log_in(username, userpassword):
-    global cursor, complaintforminterface
-    cursor.execute("SELECT * FROM complaint_form")
-    records = cursor.fetchall()
-    print(records)
     if username == userpassword == "logout":
         login_frm.pack(pady = (25,15))
         complaintforminterface.hide()
@@ -532,10 +523,5 @@ user_form_frm.pack(pady= (50, 10), padx= 20)
 login_frm.pack(pady = (25,15))
 # End of User Form #
 
-# Start of User Complaint Interface #
 
-
-# Start of Admin Interface #
-
-# End of Admin Interface #
 root.mainloop()
