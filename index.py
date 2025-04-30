@@ -2,7 +2,7 @@ import customtkinter as ctk
 import sqlite3
 import tkinter as tk
 from PIL import Image
-
+from datetime import datetime
 
 # Top Level Class
     
@@ -38,8 +38,19 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS complaint_form (
                user_id VARCHAR(250),
                gender VARCHAR(250),
                Subject VARCHAR(250),
-               Complaint TEXT
-               )''')
+               Complaint TEXT,
+               Date VARCHAR(250),
+               status VARCHAR(250),
+               Remarks TEXT,
+               user_type VARCHAR(250)
+               )
+               ''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS accounts (
+               account_id INTEGER PRIMARY KEY AUTOINCREMENT,
+               username VARCHAR(250),
+               password VARCHAR(250),
+               user_type VARCHAR(250)
+               ) ''')
 class ComplaintForm:
     def __init__(self, root, cursor, connection):
         self.root = root
@@ -52,7 +63,7 @@ class ComplaintForm:
         self.subject_com_form = tk.StringVar()
          # Frame for the entire form
         self.header_frm = ctk.CTkFrame(self.user_comp_int_frm, fg_color= "transparent")
-        self.logout_btn = ctk.CTkButton(self.header_frm, text= "Logout", command = lambda: log_in("logout", "logout"))
+        self.logout_btn = ctk.CTkButton(self.header_frm, text= "Go Back", command = lambda: log_in("complaingoback", "complaingoback"))
         self.user_comp_title_lbl = ctk.CTkLabel(self.header_frm, text="Complaint Form", font=("Poppins", 35))
         self.user_comp_form_frm = ctk.CTkFrame(self.user_comp_int_frm, border_color="#00009e", border_width=2, width=800, height=500)
 
@@ -121,12 +132,15 @@ class ComplaintForm:
         self.success_msg_frm.place(x= x, y = y)
         self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
         
-    def show(self):
+    def show(self, username, user_type):
         self.hide()
-
+        self.username = username
+        self.user_type = user_type
         # Packing Widgets
         self.user_name_lbl.pack(padx=(50, 3), pady=(10, 0), side="left")
         self.user_name_ent.pack(padx=(10, 20), pady=(10, 0), side="left")
+        self.user_name_ent.insert(0, self.username)
+        self.user_name_ent.configure(state= "readonly")
         self.user_id_lbl.pack(padx=(50, 3), pady=(10, 0), side="left")
         self.user_id_ent.pack(padx=(10, 20), pady=(10, 0), side="left")
 
@@ -211,13 +225,15 @@ class ComplaintForm:
             
         if not self.has_empty:
             self.cursor.execute(
-                "INSERT INTO complaint_form (name, user_id, gender, Subject, Complaint) VALUES (?, ?, ?, ?, ?)",
-                (self.name, self.user_id, self.gender, self.subject, self.complain)
+                "INSERT INTO complaint_form (name, user_id, gender, Subject, Complaint, Date, status, user_type, Remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (self.name, self.user_id, self.gender, self.subject, self.complain, datetime.now().strftime("%B %d, %Y"), "Unchecked",self.user_type,"")
             )
             self.connection.commit()
             self.cursor.execute("SELECT * FROM complaint_form")
+            self.cursor_records = self.cursor.fetchall()
+            print(self.cursor_records)
             self.submit()
-            self.show()
+            self.show(self.username, self.user_type)
     
     def hide(self):
         if hasattr(self, 'gender_dropdown'):
@@ -462,27 +478,221 @@ class AdminMainInterface:
         self.hide()
         self.show()
         
+class RegisterForm:
+    def __init__(self, root, cursor, connection):
+        self.root = root
+        self.cursor = cursor
+        self.connection = connection
+    
+    def show(self):
+        self.register_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", width= 500, height=500, border_color= "#00009e", border_width= 5)
+
+        self.header_frm = ctk.CTkFrame(self.register_main_int, fg_color= "transparent")
+        self.back_to_login_btn = ctk.CTkButton(self.header_frm, text= "Back to Login", hover_color="gray", text_color= "#00009e", width= 75, fg_color= "transparent", command= lambda: log_in("gobackfromregister", "gobackfromregister"))
+        self.header_title = ctk.CTkLabel(self.header_frm, text= "Register Form", font= ("Poppins", 30))
+
+        self.user_username_lbl = ctk.CTkLabel(self.register_main_int, text= "Username:" , font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 250)
+        self.user_username_ent = ctk.CTkEntry(self.register_main_int, placeholder_text="Enter your username:", corner_radius= 50, width= 400, font= ("Poppins", 14))
+        self.user_username_err = ctk.CTkLabel(self.register_main_int, text= "", text_color="red", font= ("Poppins", 10), anchor= "w")
+        self.user_password_lbl = ctk.CTkLabel(self.register_main_int, text= "Password:", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 250)
+        self.user_password_ent = ctk.CTkEntry(self.register_main_int, placeholder_text="Enter your password:", show= "•", corner_radius= 50, width= 400, font= ("Poppins", 14))
+        self.usertype_lbl = ctk.CTkLabel(self.register_main_int, text= "User Type: ", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 400)
+        self.usertype_frm = ctk.CTkFrame(self.register_main_int, fg_color="transparent", border_color="gray", border_width= 5, bg_color="transparent")
+        self.usertype_dropdown = ctk.CTkOptionMenu(self.usertype_frm, width=250, values=["Student", "Faculty", "Facility", "Others"], font=("Poppins", 15), fg_color= "white", text_color="black")
+        self.register_btn = ctk.CTkButton(self.register_main_int, text= "Register", corner_radius= 20, font= ("Poppins", 18), width= 400, command=lambda: self.verify(self.user_username_ent.get(), self.user_password_ent.get(), self.usertype_dropdown.get()))
+
+        self.header_frm.pack(fill= "x", pady= 20, padx= 20)
+        self.back_to_login_btn.pack(side= "left")
+        self.header_title.pack(side= "left", padx= (50, 100))
+        self.user_username_lbl.pack(fill="x", padx= 20)
+        self.user_username_ent.pack()
+        self.user_username_err.pack(pady= (0, 20))
+        self.user_password_lbl.pack(fill="x", padx= 20)
+        self.user_password_ent.pack(pady= (0, 40))
+        self.usertype_lbl.pack(fill= "x", padx= 20)
+        self.usertype_dropdown.pack(padx= 3, pady= 3)
+        self.usertype_frm.pack()
+        self.register_btn.pack(pady= (30, 10))
+        self.register_main_int.pack_propagate(False)
+        self.register_main_int.pack(expand= True)
+    
+    def verify(self, user_name, password, user_type):
+        self.user_name = user_name
+        self.password = password
+        self.user_type = user_type
+        if user_name != "" and password != "":
+            self.cursor.execute(f"SELECT username FROM accounts WHERE username LIKE '{self.user_name}'")
+            self.results = self.cursor.fetchall()
+            if len(self.results) == 0:
+                self.cursor.execute(f"INSERT INTO accounts (username, password, user_type) VALUES (?,?,?)", (self.user_name, self.password, self.user_type))
+                self.connection.commit()
+            else:
+                self.user_username_err.configure(text= f"{self.user_name} is already taken.")
+    
+    def hide(self):
+        self.register_main_int.forget()
+    
+class UserMainInterface:
+    def __init__(self, root, cursor, connection):
+        self.root = root
+        self.cursor = cursor
+        self.connection = connection
+
+    def show(self, username):
+        self.username = username
+        self.user_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", width= 600, height= 500, border_color="#00009e", border_width= 5)
+        self.logout_btn = ctk.CTkButton(self.user_main_int, text="Logout", font= ("Poppins", 30), width= 450, command=lambda: log_in("logoutuser", "logoutuser"))
+        self.create_btn = ctk.CTkButton(self.user_main_int, text="Create New Complaint", font= ("Poppins", 30), width= 450, command= self.create)
+        self.view_btn = ctk.CTkButton(self.user_main_int, text="View Submitted Complaints", font= ("Poppins", 30), width= 450, command= self.view)
 
 
+        
+        self.create_btn.pack(pady= 50, padx= 20)
+        self.view_btn.pack(pady= 50, padx= 20)
+        self.logout_btn.pack(pady= 50, padx= 20)
+        self.user_main_int.pack_propagate(False)
+        self.user_main_int.pack(expand= True)
+    
+    def hide(self):
+        self.user_main_int.forget()
+    
+    def create(self):
+        self.hide()
+        self.cursor.execute(f"SELECT user_type FROM accounts WHERE username LIKE '{self.username}'")
+        self.user_type = self.cursor.fetchall()[0][0]
+        complaintforminterface.show(self.username, self.user_type)
+    
+    def view(self):
+        self.hide()
+        submittedcomplaintinterface.show(self.username)
 
+class SubmittedComplaintInterface:
+    def __init__(self, root, cursor, connection):
+        self.root = root
+        self.cursor = cursor
+        self.connection = connection
+    
+    def show(self, username):
+        self.username = username
+        self.submitted_frm = ctk.CTkFrame(self.root, fg_color="transparent", border_color="#00009e", border_width=5)
+        self.header_frm = ctk.CTkFrame(self.submitted_frm, fg_color= "transparent")
+        self.go_back_btn = ctk.CTkButton(self.header_frm, text= "Go Back", font= ("Poppins", 15), command= lambda: log_in("viewgoback", "viewgoback"))
+        self.header_lbl = ctk.CTkLabel(self.header_frm, text= "Submitted Complaints", font= ("Poppins", 30))
+        self.submitted_com_frm = ctk.CTkScrollableFrame(self.submitted_frm, fg_color="transparent", border_color="#00009e", border_width=3, width=800, height=500)
+
+        
+        self.go_back_btn.pack(side= "left", padx= 50)
+        self.header_lbl.pack(side= "left", padx= 70)
+        self.header_frm.pack(fill= "x", pady= 10, padx= 10)
+        self.cursor.execute(f"SELECT status, complaint_no, Date, Subject FROM complaint_form WHERE name = '{self.username}'")
+        self.records = self.cursor.fetchall() 
+
+        if len(self.records) == 0 :
+            self.show_none()
+        else:
+            self.show_records()
+        self.submitted_com_frm.pack(padx= 50, pady= 10)
+        self.submitted_frm.pack(expand= True)
+
+        
+    def show_none(self):
+        for widget in self.submitted_com_frm.winfo_children():
+            widget.destroy()
+
+        self.none_lbl = ctk.CTkLabel(self.submitted_com_frm, text="There are no complaints yet currently.", font=("Poppins", 36), height= 500, text_color= "#a6a6a6")
+        self.none_lbl.pack(expand= True)
+    
+    def show_records(self):
+        for widget in self.submitted_com_frm.winfo_children():
+            widget.destroy()
+        
+        columns = ["Status", "Complaint\nNo.", "Date", "Subject"]
+        self.header_frame = ctk.CTkFrame(self.submitted_com_frm, fg_color= "lightgray", corner_radius= 8)
+        self.header_frame.pack(fill= "x", padx= 5, pady= 2)
+
+        for col_index, col_name in enumerate(columns):
+            header_label = ctk.CTkLabel(self.header_frame, text= col_name, font=("Poppins", 15), padx= 5, pady= 5)
+            header_label.grid(row=0, column= col_index, sticky= "nsew", padx= 2, pady=2)
+        
+        for col_index in range(len(columns)):
+            self.header_frame.grid_columnconfigure(col_index, weight= 1, minsize= 200)
+        
+        for num in range(len(self.records)):
+            record_frame = ctk.CTkFrame(self.submitted_com_frm, fg_color = "#00C0F0", corner_radius= 8)
+            record_frame.pack(fill= "x", padx= 5, pady= 2)
+
+            record_frame.bind("<Button-1>", lambda event, complaint_no = self.records[num][0] : self.show_individual_record(complaint_no))
+            record_frame.bind("<Enter>", lambda event, frame= record_frame: self.on_enter(frame))
+            record_frame.bind("<Leave>", lambda event, frame= record_frame: self.on_leave(frame))
+            for col_index, field in enumerate(self.records[num]):
+                field_label = ctk.CTkLabel(record_frame, text= str(field), font= ("Poppins", 15), padx= 5, pady= 5, justify = "center")
+                field_label.grid(row=0, column= col_index, sticky = "nsew", padx= 2, pady= 2)
+
+                field_label.bind("<Button-1>", lambda event, complaint_no = self.records[num][0]: self.show_individual_record(complaint_no))
+                field_label.bind("<Enter>", lambda event, frame= record_frame: self.on_enter(frame))
+                field_label.bind("<Leave>", lambda event, frame= record_frame: self.on_leave(frame))
+            for col_index in range(len(columns)):
+                record_frame.grid_columnconfigure(col_index, weight= 1, minsize=200)
+    def hide(self):
+        self.submitted_frm.forget()
+
+    def on_enter(self, frame):
+        frame.configure(fg_color = '#0083A3')
+
+    def on_leave(self, frame):
+        frame.configure(fg_color = '#00C0F0')
 
     
 complaintforminterface = ComplaintForm(root, cursor, connection)
 adminmaininterface = AdminMainInterface(root, cursor, connection)
+registerinterface = RegisterForm(root, cursor, connection)
+usermaininterface = UserMainInterface(root, cursor, connection)
+submittedcomplaintinterface = SubmittedComplaintInterface(root, cursor, connection)
+username_login = None
 # Functions
 def log_in(username, userpassword):
-    if username == userpassword == "logout":
-        login_frm.pack(pady = (25,15))
+    global username_login
+    if username == userpassword == "complaingoback":
         complaintforminterface.hide()
+        usermaininterface.show(username_login)
+        return
+    elif username == userpassword == "viewgoback":
+        submittedcomplaintinterface.hide()
+        usermaininterface.show(username_login)
+        return
     elif username == userpassword == "logoutadmin":
         login_frm.pack(pady = (25,15))
         adminmaininterface.hide()
-    elif username.get() == userpassword.get() == "user":
+        return
+    elif username == userpassword == "logoutuser":
+        login_frm.pack(pady = (25,15))
+        usermaininterface.hide()
+        return
+    elif username == userpassword == "register":
         login_frm.forget()
-        complaintforminterface.show()
+        registerinterface.show()
+        return
+    elif username == userpassword == "gobackfromregister":
+        registerinterface.hide()
+        login_frm.pack(pady = (25,15))
+        return
     elif username.get() == userpassword.get() == "admin":
         login_frm.forget()
         adminmaininterface.show()
+        return
+    
+    cursor.execute(f"SELECT * FROM accounts WHERE username LIKE '{username.get()}'")
+    matched_username = cursor.fetchall()
+    print(matched_username)
+    if len(matched_username) == 0:
+        return
+    elif (username.get() == matched_username[0][1]) and (userpassword.get() == matched_username[0][2]):
+        login_frm.forget()
+        username_login = username.get()
+        usermaininterface.show(username_login)
+        user_username_ent.delete(0, "end")
+        user_password_ent.delete(0, "end")
+    
     
         
 
@@ -509,6 +719,9 @@ user_username_lbl = ctk.CTkLabel(user_form_frm, text= "Username:" , font= ("Popp
 user_username_ent = ctk.CTkEntry(user_form_frm, placeholder_text="Enter your username:", corner_radius= 50, width= 250, font= ("Poppins", 12), textvariable= username_login)
 user_password_lbl = ctk.CTkLabel(user_form_frm, text= "Password:", font= ("Poppins", 15), text_color= "#00009e", anchor= "w", width= 250)
 user_password_ent = ctk.CTkEntry(user_form_frm, placeholder_text="Enter your password:", show= "•", corner_radius= 50, width= 250, font= ("Poppins", 12), textvariable= userpassword_login)
+register_frm = ctk.CTkFrame(user_form_frm, fg_color="transparent")
+register_lbl = ctk.CTkLabel(register_frm, text= "Don't have an account?", font= ("Poppins", 10), text_color= "#00009e")
+register_btn = ctk.CTkButton(register_frm, text= "Register", fg_color= "transparent", bg_color= "transparent", text_color= "#00009e", hover_color= "gray", font= ("Poppins", 12), width= 50, command= lambda: log_in("register", "register"))
 user_form_submit_btn = ctk.CTkButton(user_form_frm, text= "Log in", font= ("Poppins", 15), width= 250, corner_radius= 50, command= lambda: log_in(username_login, userpassword_login))
 
 user_form_icon_holder.pack(pady= (5,0), padx= 20)
@@ -517,9 +730,12 @@ user_form_lbl.pack(pady= (5, 0), padx= 20, fill= "x")
 user_username_lbl.pack(pady = (20, 0), padx = 20)
 user_username_ent.pack(pady = (10, 0), padx = 20)
 user_password_lbl.pack(pady = (20, 0), padx = 20)
-user_password_ent.pack(pady = (10, 10), padx = 20)
+user_password_ent.pack(pady = (10, 0), padx = 20)
+register_frm.pack(pady= (10,0), padx= 20, fill= "x")
+register_lbl.pack(side= "left", padx= (30, 5))
+register_btn.pack(side= "left")
 user_form_submit_btn.pack(pady = (10, 10), padx = 20)
-user_form_frm.pack(pady= (50, 10), padx= 20)
+user_form_frm.pack(pady= (15, 10), padx= 20)
 login_frm.pack(pady = (25,15))
 # End of User Form #
 
