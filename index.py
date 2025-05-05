@@ -57,6 +57,24 @@ class ComplaintForm:
         self.root = root
         self.cursor = cursor
         self.connection = connection
+        
+
+    def submit(self):
+        frame_width = 400
+        frame_height = 200
+        x = (self.root.winfo_width()/2) - (frame_width/2)
+        y = (self.root.winfo_height()/2) - (frame_height/2)
+        self.success_msg_frm = ctk.CTkFrame(self.root, width= frame_width, height= frame_height, fg_color= "transparent", border_color="green", border_width= 5)
+        self.success_icon = ctk.CTkImage(success_img, size=(100,100))
+        self.success_msg_lbl = ctk.CTkLabel(self.success_msg_frm, text= "Complaint has been submitted!", font=("Poppins", 18))
+        self.success_icon_holder = ctk.CTkLabel(self.success_msg_frm, image=self.success_icon, text="")
+
+        self.success_msg_lbl.pack(fill="x", expand= True, pady = 10, padx= 50)
+        self.success_icon_holder.pack(fill= "x", expand= True, pady=(0,10), padx= 50)
+        self.success_msg_frm.place(x= x, y = y)
+        self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
+        
+    def show(self, username, user_type):
         self.user_comp_int_frm = ctk.CTkFrame(self.root, fg_color="transparent", border_color= "#00009e", border_width= 5)
         self.username_com_form = tk.StringVar()
         self.userid_com_form = tk.StringVar()
@@ -117,23 +135,6 @@ class ComplaintForm:
         self.comp_form_error_lbl = ctk.CTkLabel(self.com_form_error_frm, text= "", font=("Poppins", 12), text_color= "red")
 
         self.submit_com_form_btn = ctk.CTkButton(self.user_comp_form_frm, text="Submit Now", font=("Poppins", 15), command=self.insert)
-
-    def submit(self):
-        frame_width = 400
-        frame_height = 200
-        x = (self.root.winfo_width()/2) - (frame_width/2)
-        y = (self.root.winfo_height()/2) - (frame_height/2)
-        self.success_msg_frm = ctk.CTkFrame(self.root, width= frame_width, height= frame_height, fg_color= "transparent", border_color="green", border_width= 5)
-        self.success_icon = ctk.CTkImage(success_img, size=(100,100))
-        self.success_msg_lbl = ctk.CTkLabel(self.success_msg_frm, text= "Complaint has been submitted!", font=("Poppins", 18))
-        self.success_icon_holder = ctk.CTkLabel(self.success_msg_frm, image=self.success_icon, text="")
-
-        self.success_msg_lbl.pack(fill="x", expand= True, pady = 10, padx= 50)
-        self.success_icon_holder.pack(fill= "x", expand= True, pady=(0,10), padx= 50)
-        self.success_msg_frm.place(x= x, y = y)
-        self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
-        
-    def show(self, username, user_type):
         self.hide()
         self.username = username
         self.user_type = user_type
@@ -908,7 +909,7 @@ submittedcomplaintinterface = SubmittedComplaintInterface(root, cursor, connecti
 username_login = None
 # Functions
 def log_in(username, userpassword):
-    global username_login
+    global username_login, account_notfound_lbl
     if username == userpassword == "complaingoback":
         complaintforminterface.hide()
         usermaininterface.show(username_login)
@@ -939,18 +940,17 @@ def log_in(username, userpassword):
         user_username_ent.delete(0, "end")
         user_password_ent.delete(0, "end")
         return
-    print(username)
     cursor.execute(f"SELECT * FROM accounts WHERE username LIKE '{username}'")
     matched_username = cursor.fetchall()
-    print(matched_username)
-    if len(matched_username) == 0:
-        return
+    if len(matched_username) == 0 or (username != matched_username[0][1]) or (userpassword != matched_username[0][2]):
+        account_notfound_lbl.configure(text= "Account not found!")
     elif (username == matched_username[0][1]) and (userpassword == matched_username[0][2]):
         login_frm.forget()
         username_login = username
         usermaininterface.show(username_login)
         user_username_ent.delete(0, "end")
         user_password_ent.delete(0, "end")
+        account_notfound_lbl.configure(text= "")
     
     
         
@@ -964,6 +964,8 @@ login_title_lbl = ctk.CTkLabel(login_title_frm, text= "Complaint Management Syst
 login_title_frm.pack(pady= 10, padx= 20)
 login_title_lbl.pack(padx = 20, pady = 40)
 
+
+
 # Start of User Form #
 ## End of Variable Holder ##
 user_form_frm = ctk.CTkFrame(login_frm, border_color= "#00009e", corner_radius= 20, border_width= 3)
@@ -971,6 +973,9 @@ icon_frm = ctk.CTkFrame(user_form_frm)
 user_form_icon = ctk.CTkImage(profile_img, size=(80,80))
 user_form_icon_holder = ctk.CTkLabel(user_form_frm, image= user_form_icon, text= "", width= 250)
 user_form_lbl = ctk.CTkLabel(user_form_frm, text= "Member Login" , font= ("Poppins", 15), text_color= "#00009e", anchor= "w", width= 250)
+# Error Message
+account_notfound_lbl = ctk.CTkLabel(user_form_frm, fg_color="transparent", text= "", font= ("Poppins", 11), text_color= "red")
+
 user_username_lbl = ctk.CTkLabel(user_form_frm, text= "Username:" , font= ("Poppins", 15), text_color= "#00009e", anchor= "w", width= 250)
 user_username_ent = ctk.CTkEntry(user_form_frm, placeholder_text="Enter your username:", corner_radius= 50, width= 250, font= ("Poppins", 12), textvariable= username_login)
 user_password_lbl = ctk.CTkLabel(user_form_frm, text= "Password:", font= ("Poppins", 15), text_color= "#00009e", anchor= "w", width= 250)
@@ -982,8 +987,9 @@ user_form_submit_btn = ctk.CTkButton(user_form_frm, text= "Log in", font= ("Popp
 
 user_form_icon_holder.pack(pady= (5,0), padx= 20)
 user_form_lbl.configure(anchor="center", justify="center")
-user_form_lbl.pack(pady= (5, 0), padx= 20, fill= "x")
-user_username_lbl.pack(pady = (20, 0), padx = 20)
+user_form_lbl.pack(padx= 20, fill= "x")
+account_notfound_lbl.pack(expand= True)
+user_username_lbl.pack(pady = (5, 0), padx = 20)
 user_username_ent.pack(pady = (10, 0), padx = 20)
 user_password_lbl.pack(pady = (20, 0), padx = 20)
 user_password_ent.pack(pady = (10, 0), padx = 20)
