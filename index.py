@@ -73,6 +73,7 @@ class ComplaintForm:
         self.success_icon_holder.pack(fill= "x", expand= True, pady=(0,10), padx= 50)
         self.success_msg_frm.place(x= x, y = y)
         self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
+        self.user_comp_int_frm.after(800, self.user_comp_int_frm.forget)
         
     def show(self, username, user_type):
         self.user_comp_int_frm = ctk.CTkFrame(self.root, fg_color="transparent", border_color= "#00009e", border_width= 5)
@@ -233,9 +234,9 @@ class ComplaintForm:
             self.connection.commit()
             self.cursor.execute("SELECT * FROM complaint_form")
             self.cursor_records = self.cursor.fetchall()
-            print(self.cursor_records)
             self.submit()
             self.show(self.username, self.user_type)
+            
     
     def hide(self):
         if hasattr(self, 'gender_dropdown'):
