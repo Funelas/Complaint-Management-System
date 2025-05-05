@@ -603,11 +603,29 @@ class RegisterForm:
             if len(self.results) == 0:
                 self.cursor.execute(f"INSERT INTO accounts (username, password, user_type) VALUES (?,?,?)", (self.user_name, self.password, self.user_type))
                 self.connection.commit()
+                self.submit()
+                self.user_password_ent.delete(0, "end")
+                self.user_username_ent.delete(0, "end")
             else:
                 self.user_username_err.configure(text= f"{self.user_name} is already taken.")
     
     def hide(self):
-        self.register_main_int.forget()
+        self.register_main_int.forget()\
+    
+    def submit(self):
+        frame_width = 400
+        frame_height = 200
+        x = (self.root.winfo_width()/2) - (frame_width/2)
+        y = (self.root.winfo_height()/2) - (frame_height/2)
+        self.success_msg_frm = ctk.CTkFrame(self.root, width= frame_width, height= frame_height, fg_color= "transparent", border_color="green", border_width= 5)
+        self.success_icon = ctk.CTkImage(success_img, size=(100,100))
+        self.success_msg_lbl = ctk.CTkLabel(self.success_msg_frm, text= "Account has been registered!", font=("Poppins", 18))
+        self.success_icon_holder = ctk.CTkLabel(self.success_msg_frm, image=self.success_icon, text="")
+
+        self.success_msg_lbl.pack(fill="x", expand= True, pady = 10, padx= 50)
+        self.success_icon_holder.pack(fill= "x", expand= True, pady=(0,10), padx= 50)
+        self.success_msg_frm.place(x= x, y = y)
+        self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
     
 class UserMainInterface:
     def __init__(self, root, cursor, connection):
