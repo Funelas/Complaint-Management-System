@@ -50,7 +50,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS accounts (
                account_id INTEGER PRIMARY KEY AUTOINCREMENT,
                username VARCHAR(250),
                password VARCHAR(250),
-               user_type VARCHAR(250)
+               user_type VARCHAR(250),
+               real_name VARCHAR(250)
                ) ''')
 class ComplaintForm:
     def __init__(self, root, cursor, connection):
@@ -563,7 +564,7 @@ class RegisterForm:
         self.connection = connection
     
     def show(self):
-        self.register_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", width= 500, height=500, border_color= "#00009e", border_width= 5)
+        self.register_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", width= 500, height=600, border_color= "#00009e", border_width= 5)
 
         self.header_frm = ctk.CTkFrame(self.register_main_int, fg_color= "transparent")
         self.back_to_login_btn = ctk.CTkButton(self.header_frm, text= "Back to Login", hover_color="gray", text_color= "#00009e", width= 75, fg_color= "transparent", command= lambda: log_in("gobackfromregister", "gobackfromregister"))
@@ -574,10 +575,12 @@ class RegisterForm:
         self.user_username_err = ctk.CTkLabel(self.register_main_int, text= "", text_color="red", font= ("Poppins", 10), anchor= "w")
         self.user_password_lbl = ctk.CTkLabel(self.register_main_int, text= "Password:", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 250)
         self.user_password_ent = ctk.CTkEntry(self.register_main_int, placeholder_text="Enter your password:", show= "•", corner_radius= 50, width= 400, font= ("Poppins", 14))
+        self.user_realname_lbl = ctk.CTkLabel(self.register_main_int, text= "Name:", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 250)
+        self.user_realname_ent = ctk.CTkEntry(self.register_main_int, placeholder_text="Enter your name (to be used in complaint forms):", corner_radius= 50, width= 400, font= ("Poppins", 14))
         self.usertype_lbl = ctk.CTkLabel(self.register_main_int, text= "User Type: ", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 400)
         self.usertype_frm = ctk.CTkFrame(self.register_main_int, fg_color="transparent", border_color="gray", border_width= 5, bg_color="transparent")
         self.usertype_dropdown = ctk.CTkOptionMenu(self.usertype_frm, width=250, values=["Student", "Faculty", "Facility", "Others"], font=("Poppins", 15), fg_color= "white", text_color="black")
-        self.register_btn = ctk.CTkButton(self.register_main_int, text= "Register", corner_radius= 20, font= ("Poppins", 18), width= 400, command=lambda: self.verify(self.user_username_ent.get(), self.user_password_ent.get(), self.usertype_dropdown.get()))
+        self.register_btn = ctk.CTkButton(self.register_main_int, text= "Register", corner_radius= 20, font= ("Poppins", 18), width= 400, command=lambda: self.verify(self.user_username_ent.get(), self.user_password_ent.get(), self.usertype_dropdown.get(), self.user_realname_ent.get()))
 
         self.header_frm.pack(fill= "x", pady= 20, padx= 20)
         self.back_to_login_btn.pack(side= "left")
@@ -587,6 +590,8 @@ class RegisterForm:
         self.user_username_err.pack(pady= (0, 20))
         self.user_password_lbl.pack(fill="x", padx= 20)
         self.user_password_ent.pack(pady= (0, 40))
+        self.user_realname_lbl.pack(fill="x", padx= 20)
+        self.user_realname_ent.pack(pady= (0, 40))
         self.usertype_lbl.pack(fill= "x", padx= 20)
         self.usertype_dropdown.pack(padx= 3, pady= 3)
         self.usertype_frm.pack()
@@ -594,19 +599,21 @@ class RegisterForm:
         self.register_main_int.pack_propagate(False)
         self.register_main_int.pack(expand= True)
     
-    def verify(self, user_name, password, user_type):
+    def verify(self, user_name, password, user_type, user_realname):
         self.user_name = user_name
         self.password = password
         self.user_type = user_type
+        self.user_realname = user_realname
         if user_name != "" and password != "":
             self.cursor.execute(f"SELECT username FROM accounts WHERE username LIKE '{self.user_name}'")
             self.results = self.cursor.fetchall()
             if len(self.results) == 0:
-                self.cursor.execute(f"INSERT INTO accounts (username, password, user_type) VALUES (?,?,?)", (self.user_name, self.password, self.user_type))
+                self.cursor.execute(f"INSERT INTO accounts (username, password, user_type, real_name) VALUES (?,?,?,?)", (self.user_name, self.password, self.user_type, self.user_realname))
                 self.connection.commit()
                 self.submit()
                 self.user_password_ent.delete(0, "end")
                 self.user_username_ent.delete(0, "end")
+                self.user_realname_ent.delete(0, "end")
             else:
                 self.user_username_err.configure(text= f"{self.user_name} is already taken.")
     
@@ -635,7 +642,10 @@ class UserMainInterface:
         self.connection = connection
 
     def show(self, username):
-        self.username = username
+        self.cursor.execute(f"SELECT real_name, user_type FROM accounts WHERE username = '{username}'")
+        self.record = self.cursor.fetchall()
+        self.real_name = self.record[0][0]
+        self.user_type = self.record[0][1]
         self.user_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", width= 600, height= 500, border_color="#00009e", border_width= 5)
         self.logout_btn = ctk.CTkButton(self.user_main_int, text="Logout", font= ("Poppins", 30), width= 450, command=lambda: log_in("logoutuser", "logoutuser"))
         self.create_btn = ctk.CTkButton(self.user_main_int, text="Create New Complaint", font= ("Poppins", 30), width= 450, command= self.create)
@@ -654,13 +664,11 @@ class UserMainInterface:
     
     def create(self):
         self.hide()
-        self.cursor.execute(f"SELECT user_type FROM accounts WHERE username LIKE '{self.username}'")
-        self.user_type = self.cursor.fetchall()[0][0]
-        complaintforminterface.show(self.username, self.user_type)
+        complaintforminterface.show(self.real_name, self.user_type)
     
     def view(self):
         self.hide()
-        submittedcomplaintinterface.show(self.username)
+        submittedcomplaintinterface.show(self.real_name)
 
 class SubmittedComplaintInterface:
     def __init__(self, root, cursor, connection):
