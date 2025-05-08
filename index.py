@@ -3,6 +3,8 @@ import sqlite3
 import tkinter as tk
 from PIL import Image
 from datetime import datetime
+import csv
+from tkinter import filedialog
 
 # Top Level Class
     
@@ -269,7 +271,7 @@ class AdminMainInterface:
         self.search_lbl = ctk.CTkLabel(self.search_frm, text= "Search: ", font = ("Poppins", 18))
         self.search_bar = ctk.CTkEntry(self.search_frm, width= 300)
 
-
+        self.export_btn = ctk.CTkButton(self.admin_main_int, text= "Export As...", font=("Poppins", 12), command= self.export )
         self.cursor.execute("SELECT complaint_no, status, user_type, name, Subject FROM complaint_form")
         self.records = self.cursor.fetchall()
 
@@ -278,6 +280,7 @@ class AdminMainInterface:
         self.search_bar.pack(side = "left", padx= 20)
         self.search_frm.pack(expand = True)
         self.search_bar.bind("<KeyRelease>",self.filter_records)
+        self.export_btn.pack(expand= True, pady= 5)
         self.show_all_records()
         self.logout_btn.pack(padx = (20, 125), side= "left")
         self.admin_title_lbl.pack(side = "left")
@@ -289,6 +292,25 @@ class AdminMainInterface:
         self.keyword = self.search_bar.get()
         self.admin_form_frm.forget()
         self.show_all_records(self.keyword)
+    
+    def export(self):
+        file_path = filedialog.asksaveasfilename(
+            defaultextension= ".csv",
+            filetypes= [("CSV files", "*.csv")],
+            title= "Export As ..."
+        )
+        self.complaint_numbers = [i[0] for i in self.records]
+        self.placeholders = ",".join(["?"] * len(self.complaint_numbers))
+        self.cursor.execute(f"SELECT complaint_no, name, user_id, gender, Subject, Complaint, Date, status, Remarks, user_type FROM complaint_form WHERE complaint_no IN ({self.placeholders})", self.complaint_numbers)
+        self.exporting_records = self.cursor.fetchall()
+    
+
+        if file_path:
+            with open(file_path, mode= "w", newline= '') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Complaint No.', 'Name', 'ID Number', 'Gender', 'Subject', 'Complaint', 'Date', 'Status', 'Remarks', 'User_Type'])
+                writer.writerows(self.exporting_records)
+        
     def show_all_records(self, searched_key = ""):
         self.searched_key = searched_key.strip()
         self.cursor.execute(f"SELECT complaint_no, status, user_type, name, Subject FROM complaint_form WHERE complaint_no LIKE '%{self.searched_key}%' OR status LIKE '%{self.searched_key}%' OR user_type LIKE '%{self.searched_key}%' OR name LIKE '%{self.searched_key}%' OR Subject LIKE '%{self.searched_key}%'")
