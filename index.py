@@ -53,7 +53,9 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS accounts (
                username VARCHAR(250),
                password VARCHAR(250),
                user_type VARCHAR(250),
-               real_name VARCHAR(250)
+               real_name VARCHAR(250),
+               user_id VARCHAR(250),
+               gender VARCHAR(250)
                ) ''')
 class ComplaintForm:
     def __init__(self, root, cursor, connection):
@@ -78,7 +80,7 @@ class ComplaintForm:
         self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
         self.user_comp_int_frm.after(800, self.user_comp_int_frm.forget)
         
-    def show(self, username, user_type):
+    def show(self, username, user_type, user_id, user_gender):
         self.user_comp_int_frm = ctk.CTkFrame(self.root, fg_color="transparent", border_color= "#00009e", border_width= 5)
         self.username_com_form = tk.StringVar()
         self.userid_com_form = tk.StringVar()
@@ -109,10 +111,10 @@ class ComplaintForm:
 
         # Gender Frame
         self.gender_frm = ctk.CTkFrame(self.user_comp_form_frm, fg_color="transparent")
-        self.gender_values = ["Male", "Female", "I prefer not to say..."]
+        # self.gender_values = ["Male", "Female", "I prefer not to say..."]
         self.gender_lbl = ctk.CTkLabel(self.gender_frm, text="Gender:", font=("Poppins", 15))
         self.gender_dropdown_frm = ctk.CTkFrame(self.gender_frm, border_color= "gray", fg_color= "gray")
-        self.gender_dropdown = ctk.CTkOptionMenu(self.gender_dropdown_frm, width=250, values=self.gender_values, font=("Poppins", 15), variable=self.usergender_com_form, fg_color= "white", text_color="black")
+        self.gender_dropdown = ctk.CTkEntry(self.gender_dropdown_frm, width=250, font=("Poppins", 15),fg_color= "white", text_color="black")
 
         # Error Message When Gender Left Blank
         self.gender_error_frm = ctk.CTkFrame(self.user_comp_form_frm, fg_color= "transparent")
@@ -142,6 +144,8 @@ class ComplaintForm:
         self.hide()
         self.username = username
         self.user_type = user_type
+        self.user_id = user_id
+        self.user_gender = user_gender
         # Packing Widgets
         self.user_name_lbl.pack(padx=(50, 3), pady=(10, 0), side="left")
         self.user_name_ent.pack(padx=(10, 20), pady=(10, 0), side="left")
@@ -149,9 +153,12 @@ class ComplaintForm:
         self.user_name_ent.configure(state= "readonly")
         self.user_id_lbl.pack(padx=(50, 3), pady=(10, 0), side="left")
         self.user_id_ent.pack(padx=(10, 20), pady=(10, 0), side="left")
-
+        self.user_id_ent.insert(0, self.user_id)
+        self.user_id_ent.configure(state= "readonly")
         self.gender_lbl.pack(padx=(50, 11), pady=5, side="left")
         self.gender_dropdown.pack(padx = 2, pady = 2)
+        self.gender_dropdown.insert(0, self.user_gender)
+        self.gender_dropdown.configure(state= "readonly")
         self.gender_dropdown_frm.pack(pady=(0, 3), side="left")
 
         self.subject_lbl.pack(padx=(50, 3), pady=(5, 5), side="left")
@@ -198,7 +205,7 @@ class ComplaintForm:
     def insert(self):
         self.name = self.username_com_form.get()
         self.user_id = self.userid_com_form.get()
-        self.gender = self.usergender_com_form.get()
+        self.gender = self.gender_dropdown.get()
         self.subject = self.subject_com_form.get()
         self.complain = self.com_form_ent.get("0.0", "end-1c")
         self.has_empty = False
@@ -238,12 +245,10 @@ class ComplaintForm:
             self.cursor.execute("SELECT * FROM complaint_form")
             self.cursor_records = self.cursor.fetchall()
             self.submit()
-            self.show(self.username, self.user_type)
+            self.show(self.username, self.user_type, self.user_id, self.user_gender)
             
     
     def hide(self):
-        if hasattr(self, 'gender_dropdown'):
-            self.gender_dropdown.set("")
         if hasattr(self, 'subject_ent'):
             self.subject_ent.delete(0, "end")
         if hasattr(self, 'com_form_ent'):
@@ -313,7 +318,7 @@ class AdminMainInterface:
         
     def show_all_records(self, searched_key = ""):
         self.searched_key = searched_key.strip()
-        self.cursor.execute(f"SELECT complaint_no, status, user_type, name, Subject FROM complaint_form WHERE complaint_no LIKE '%{self.searched_key}%' OR status LIKE '%{self.searched_key}%' OR user_type LIKE '%{self.searched_key}%' OR name LIKE '%{self.searched_key}%' OR Subject LIKE '%{self.searched_key}%'")
+        self.cursor.execute(f"SELECT complaint_no, status, user_type, Date, name, Subject FROM complaint_form WHERE complaint_no LIKE '%{self.searched_key}%' OR status LIKE '%{self.searched_key}%' OR user_type LIKE '%{self.searched_key}%' OR Date LIKE '%{self.searched_key}%' OR name LIKE '%{self.searched_key}%' OR Subject LIKE '%{self.searched_key}%'")
         self.records = self.cursor.fetchall() 
         if len(self.records) == 0:
             self.show_none()
@@ -326,7 +331,7 @@ class AdminMainInterface:
             widget.destroy()
 
         # Column headers
-        columns = ["Complaint\nNo.", "Status", "User\nType", "Name", "Subject"]
+        columns = ["Complaint\nNo.", "Status", "User\nType", "Date", "Name", "Subject"]
         self.header_frame = ctk.CTkFrame(self.admin_form_frm, fg_color="lightgray", corner_radius=8)
         self.header_frame.pack(fill="x", padx=5, pady=2)
 
@@ -591,7 +596,7 @@ class RegisterForm:
         self.header_frm = ctk.CTkFrame(self.register_main_int, fg_color= "transparent")
         self.back_to_login_btn = ctk.CTkButton(self.header_frm, text= "Back to Login", hover_color="gray", text_color= "#00009e", width= 75, fg_color= "transparent", command= lambda: log_in("gobackfromregister", "gobackfromregister"))
         self.header_title = ctk.CTkLabel(self.header_frm, text= "Register Form", font= ("Poppins", 30))
-
+        self.empty_error_lbl = ctk.CTkLabel(self.register_main_int, text= "", font= ("Poppins", 12), text_color= "red")
         self.user_username_lbl = ctk.CTkLabel(self.register_main_int, text= "Username:" , font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 250)
         self.user_username_ent = ctk.CTkEntry(self.register_main_int, placeholder_text="Enter your username:", corner_radius= 50, width= 400, font= ("Poppins", 14))
         self.user_username_err = ctk.CTkLabel(self.register_main_int, text= "", text_color="red", font= ("Poppins", 10), anchor= "w")
@@ -599,46 +604,76 @@ class RegisterForm:
         self.user_password_ent = ctk.CTkEntry(self.register_main_int, placeholder_text="Enter your password:", show= "•", corner_radius= 50, width= 400, font= ("Poppins", 14))
         self.user_realname_lbl = ctk.CTkLabel(self.register_main_int, text= "Name:", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 250)
         self.user_realname_ent = ctk.CTkEntry(self.register_main_int, placeholder_text="Enter your name (to be used in complaint forms):", corner_radius= 50, width= 400, font= ("Poppins", 14))
+
+        self.user_id_lbl = ctk.CTkLabel(self.register_main_int, text="ID Number:", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 250)
+        self.user_id_ent = ctk.CTkEntry(self.register_main_int, font=("Poppins", 15), placeholder_text="Enter your ID", corner_radius= 50, width= 400)
+
+        
+
+        self.gender_frm = ctk.CTkFrame(self.register_main_int, fg_color="transparent")
+        self.gender_values = ["Male", "Female", "I prefer not to say..."]
+        self.gender_lbl = ctk.CTkLabel(self.gender_frm, text="Gender:", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 400)
+        self.gender_dropdown_frm = ctk.CTkFrame(self.gender_frm, border_color= "gray", fg_color= "gray", border_width= 5)
+        self.gender_dropdown = ctk.CTkOptionMenu(self.gender_dropdown_frm, width=250, values=self.gender_values, font=("Poppins", 15), fg_color= "white", text_color="black")
+
         self.usertype_lbl = ctk.CTkLabel(self.register_main_int, text= "User Type: ", font= ("Poppins", 18), text_color= "#00009e", anchor= "w", width= 400)
         self.usertype_frm = ctk.CTkFrame(self.register_main_int, fg_color="transparent", border_color="gray", border_width= 5, bg_color="transparent")
         self.usertype_dropdown = ctk.CTkOptionMenu(self.usertype_frm, width=250, values=["Student", "Faculty", "Facility", "Others"], font=("Poppins", 15), fg_color= "white", text_color="black")
-        self.register_btn = ctk.CTkButton(self.register_main_int, text= "Register", corner_radius= 20, font= ("Poppins", 18), width= 400, command=lambda: self.verify(self.user_username_ent.get(), self.user_password_ent.get(), self.usertype_dropdown.get(), self.user_realname_ent.get()))
+        self.register_btn = ctk.CTkButton(self.header_frm, text= "Register", corner_radius= 20, font= ("Poppins", 16), command=lambda: self.verify(self.user_username_ent.get(), self.user_password_ent.get(), self.usertype_dropdown.get(), self.user_realname_ent.get(), self.user_id_ent.get(), self.gender_dropdown.get()))
 
-        self.header_frm.pack(fill= "x", pady= 20, padx= 20)
+        self.header_frm.pack(fill= "x", pady= (20, 10), padx= 20)
         self.back_to_login_btn.pack(side= "left")
-        self.header_title.pack(side= "left", padx= (50, 100))
+        self.header_title.pack(side= "left", padx= (20, 20))
+        self.empty_error_lbl.pack(fill= "x", padx= 20)
         self.user_username_lbl.pack(fill="x", padx= 20)
         self.user_username_ent.pack()
-        self.user_username_err.pack(pady= (0, 20))
+        self.user_username_err.pack()
         self.user_password_lbl.pack(fill="x", padx= 20)
-        self.user_password_ent.pack(pady= (0, 40))
+        self.user_password_ent.pack(pady= (0, 20))
         self.user_realname_lbl.pack(fill="x", padx= 20)
-        self.user_realname_ent.pack(pady= (0, 40))
+        self.user_realname_ent.pack(pady= (0, 20))
+
+        self.user_id_lbl.pack(fill = "x", padx= 20)
+        self.user_id_ent.pack(pady= (0, 20))
+
+
+        self.gender_frm.pack(fill = "x", padx= 20)
+        self.gender_lbl.pack(fill = "x")
+        self.gender_dropdown_frm.pack()
+        self.gender_dropdown.pack(padx= 3, pady= 3)
+        
         self.usertype_lbl.pack(fill= "x", padx= 20)
         self.usertype_dropdown.pack(padx= 3, pady= 3)
         self.usertype_frm.pack()
-        self.register_btn.pack(pady= (30, 10))
+        self.register_btn.pack(pady= 10)
         self.register_main_int.pack_propagate(False)
         self.register_main_int.pack(expand= True)
     
-    def verify(self, user_name, password, user_type, user_realname):
+    def verify(self, user_name, password, user_type, user_realname, user_id, user_gender):
         self.user_name = user_name
         self.password = password
         self.user_type = user_type
         self.user_realname = user_realname
-        if user_name != "" and password != "":
+        self.user_id = user_id
+        self.user_gender = user_gender
+        if user_name != "" and password != "" and user_id != "":
             self.cursor.execute(f"SELECT username FROM accounts WHERE username LIKE '{self.user_name}'")
             self.results = self.cursor.fetchall()
+            self.empty_error_lbl.configure(text= "")
             if len(self.results) == 0:
-                self.cursor.execute(f"INSERT INTO accounts (username, password, user_type, real_name) VALUES (?,?,?,?)", (self.user_name, self.password, self.user_type, self.user_realname))
+                self.cursor.execute(f"INSERT INTO accounts (username, password, user_type, real_name, gender, user_id) VALUES (?,?,?,?,?,?)", (self.user_name, self.password, self.user_type, self.user_realname, self.user_gender, self.user_id))
                 self.connection.commit()
                 self.submit()
                 self.user_password_ent.delete(0, "end")
                 self.user_username_ent.delete(0, "end")
                 self.user_realname_ent.delete(0, "end")
+                self.user_id_ent.delete(0, "end")
             else:
                 self.user_username_err.configure(text= f"{self.user_name} is already taken.")
-    
+        else:
+            self.empty_error_lbl.configure(text= "Please fill up all required entries.")
+
+
     def hide(self):
         self.register_main_int.forget()\
     
@@ -655,7 +690,11 @@ class RegisterForm:
         self.success_msg_lbl.pack(fill="x", expand= True, pady = 10, padx= 50)
         self.success_icon_holder.pack(fill= "x", expand= True, pady=(0,10), padx= 50)
         self.success_msg_frm.place(x= x, y = y)
-        self.success_msg_frm.after(800, self.success_msg_frm.place_forget)
+        self.success_msg_frm.after(800, self.after)
+    def after(self):
+        self.success_msg_frm.place_forget()
+        log_in("gobackfromregister", "gobackfromregister")
+
     
 class UserMainInterface:
     def __init__(self, root, cursor, connection):
@@ -664,10 +703,12 @@ class UserMainInterface:
         self.connection = connection
 
     def show(self, username):
-        self.cursor.execute(f"SELECT real_name, user_type FROM accounts WHERE username = '{username}'")
+        self.cursor.execute(f"SELECT real_name, user_type, gender, user_id FROM accounts WHERE username = '{username}'")
         self.record = self.cursor.fetchall()
         self.real_name = self.record[0][0]
         self.user_type = self.record[0][1]
+        self.user_gender = self.record[0][2]
+        self.user_id = self.record[0][3]
         self.user_main_int = ctk.CTkFrame(self.root, fg_color= "transparent", width= 600, height= 500, border_color="#00009e", border_width= 5)
         self.logout_btn = ctk.CTkButton(self.user_main_int, text="Logout", font= ("Poppins", 30), width= 450, command=lambda: log_in("logoutuser", "logoutuser"))
         self.create_btn = ctk.CTkButton(self.user_main_int, text="Create New Complaint", font= ("Poppins", 30), width= 450, command= self.create)
@@ -686,7 +727,7 @@ class UserMainInterface:
     
     def create(self):
         self.hide()
-        complaintforminterface.show(self.real_name, self.user_type)
+        complaintforminterface.show(self.real_name, self.user_type, self.user_id, self.user_gender)
     
     def view(self):
         self.hide()
