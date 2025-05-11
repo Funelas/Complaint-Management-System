@@ -14,6 +14,7 @@ from tkinter import filedialog
 ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 ctk.FontManager.load_font("assets/fonts/Poppins.ttf")
+ctk.FontManager.load_font("assets/fonts/Poppins-Medium.ttf")
 profile_img = Image.open("assets/images/profile.png")
 delete_img = Image.open("assets/images/delete.png")
 go_back_img = Image.open("assets/images/go_back.png")
@@ -132,9 +133,10 @@ class ComplaintForm:
 
         # Complaint Frame
         self.com_form_frm = ctk.CTkFrame(self.user_comp_form_frm, fg_color="transparent")
-        self.com_form_lbl = ctk.CTkLabel(self.com_form_frm, text="Complaint:", font=("Poppins", 15))
+        self.com_form_lbl = ctk.CTkLabel(self.com_form_frm, text="Complaint: ", font=("Poppins", 15), anchor= "w")
+        self.com_form_lbl_ps = ctk.CTkLabel(self.com_form_frm, text="(You may optionally include the name of the person or department involved.)", font=("Poppins Medium", 12), text_color= "#676767", anchor= "w")
         self.com_form_ent_frm = ctk.CTkFrame(self.user_comp_form_frm, fg_color="gray", border_color="gray")
-        self.com_form_ent = ctk.CTkTextbox(self.com_form_ent_frm, font=("Poppins", 15), width=700, height=150)
+        self.com_form_ent = ctk.CTkTextbox(self.com_form_ent_frm, font=("Poppins", 15), width=700, height=125)
 
         # Error Message When Complaint is Left blank
         self.com_form_error_frm = ctk.CTkFrame(self.user_comp_form_frm, fg_color="transparent")
@@ -161,11 +163,11 @@ class ComplaintForm:
         self.gender_dropdown.configure(state= "readonly")
         self.gender_dropdown_frm.pack(pady=(0, 3), side="left")
 
-        self.subject_lbl.pack(padx=(50, 3), pady=(5, 5), side="left")
-        self.subject_ent.pack(padx=(10, 20), pady=(5, 5), side="left")
+        self.subject_lbl.pack(padx=(50, 3), side="left")
+        self.subject_ent.pack(padx=(10, 20), side="left")
 
-        self.com_form_lbl.pack(padx=(50, 3), side="left")
-        
+        self.com_form_lbl.pack(padx=(50, 3), fill= "x")
+        self.com_form_lbl_ps.pack(padx= (50, 3), fill= "x")
         self.user_name_inf_frm.pack()
         self.name_error.pack(padx= (50, 50), fill="x", expand= True)
         self.user_name_frm.pack(padx=10, pady=1, side="left")
